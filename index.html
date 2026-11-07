@@ -11,8 +11,8 @@
    Supabase 대시보드 > Project Settings > API 에서 복사해 붙여넣으세요.
    비워두면 이 브라우저에만 저장되는 혼자 모드로 실행돼요. */
 window.MG_CONFIG={
-SUPABASE_URL:https://ydmttmljvtuhfykxsmfo.supabase.co
-SUPABASE_ANON_KEY:eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlkbXR0bWxqdnR1aGZ5a3hzbWZvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTQwNDE4NzcsImV4cCI6MjEwOTYxNzg3N30.TnUdE_Ust9PU8sFw3Wonsio3AfU9AgSOeMv8p1e1bvE
+  SUPABASE_URL:'',      // 예: 'https://ydmttmljvtuhfykxsmfo.supabase.co'
+  SUPABASE_ANON_KEY:''  // 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlkbXR0bWxqdnR1aGZ5a3hzbWZvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTQwNDE4NzcsImV4cCI6MjEwOTYxNzg3N30.TnUdE_Ust9PU8sFw3Wonsio3AfU9AgSOeMv8p1e1bvE' 키 (eyJ... 로 시작)
 };
 </script>
 <script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}</script>
@@ -528,7 +528,8 @@ async function initSupabase(){
 }
 $('logoutBtn').onclick=async()=>{try{await privW.flush();await shareW.flush();await net.sb.auth.signOut()}catch(e){}location.reload()};
 async function initNet(){
-  if(SUPA_ON){try{await initSupabase()}catch(e){console.error(e);net.mode='local';toast('서버에 연결하지 못해 이 기기에만 저장돼요')}return}
+  if(SUPA_ON){try{await initSupabase()}catch(e){console.error(e);net.mode='local';net.why='fail';net.err=String(e&&e.message||e);toast('서버에 연결하지 못해 이 기기에만 저장돼요')}return}
+  net.why=(window.claude&&typeof window.claude.use==='function')?'claude':'nocfg';
   try{
     if(!(window.claude&&typeof window.claude.use==='function')) return;
     const db=await withTimeout(window.claude.use('db'),6000);
@@ -1485,9 +1486,16 @@ function previewLoop(ts){
   if(S){const c=$('retAvatar').getContext('2d');c.setTransform(1,0,0,1,0,0);c.clearRect(0,0,240,240);glow2D(c,120,130,100,'#FFB45E',.35);drawChar2D(c,S.char,120,200,t,false,3.3)}
   requestAnimationFrame(previewLoop);
 }
+function localWhy(){
+  const s='color:#FFB45E;display:block;margin-top:4px';
+  if(net.why==='nocfg')return '💾 혼자 모드예요<span style="'+s+'">⚠️ Supabase 키가 비어 있어요 → index.html 맨 위 MG_CONFIG 에 URL과 anon 키를 넣고 다시 배포해 주세요</span>';
+  if(net.why==='fail')return '💾 혼자 모드예요<span style="'+s+'">⚠️ Supabase 연결 실패: '+esc(net.err||'')+'<br>URL·키 오타 또는 프로젝트 일시정지 여부를 확인해 주세요</span>';
+  if(net.why==='claude')return '💾 이 링크에서는 혼자 모드예요<span style="'+s+'">함께 하려면 Vercel+Supabase 주소로 접속해 주세요</span>';
+  return '💾 지금은 이 브라우저에만 저장돼요 (혼자 보는 정원)';
+}
 function showAuth(){
   $('loading').classList.add('hidden');$('auth').classList.remove('hidden');
-  $('storeNote').textContent=net.mode==='supa'?'☁️ '+net.email+' 계정으로 저장돼요 · 서버마다 다른 정원을 함께 가꿔요':net.mode==='cloud'?'☁️ 내 Claude 계정으로 캐릭터가 저장되고, 서버마다 다른 정원을 함께 가꿔요':'💾 지금은 이 브라우저에만 저장돼요 (혼자 보는 정원)';
+  $('storeNote').innerHTML=net.mode==='local'?localWhy():esc(net.mode==='supa'?'☁️ '+net.email+' 계정으로 저장돼요 · 서버마다 다른 정원을 함께 가꿔요':net.mode==='cloud'?'☁️ 내 Claude 계정으로 캐릭터가 저장되고, 서버마다 다른 정원을 함께 가꿔요':'💾 지금은 이 브라우저에만 저장돼요 (혼자 보는 정원)');
   if(S){$('signupForm').classList.add('hidden');$('returnForm').classList.remove('hidden');$('retName').textContent=S.nickname+'님, 다시 오셨네요';let n=0;for(const k in mySrv)n+=mySrv[k].length;$('retInfo').textContent=`${CHARS[S.char].n}와 함께 · 밝힌 빛 ${n}개 · ☀️ ${S.sun}`}
   else{$('signupForm').classList.remove('hidden');$('returnForm').classList.add('hidden');buildCharList()}
   updateCounts();requestAnimationFrame(previewLoop);
